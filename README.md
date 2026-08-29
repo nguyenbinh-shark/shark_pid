@@ -151,7 +151,7 @@ $$u = K_p\,(b\cdot r - y) \;+\; K_i\!\!\int\!(r-y)\,dt \;+\; K_d\,\frac{d(c\cdot
 | `kf_dot` | Bù vận tốc: `kf_dot * d(setpoint)/dt`. Chỉ có tác dụng khi setpoint đang chạy |
 | *(đối số)* | `shark_pid_update_ff()` nhận thêm lượng bù tính từ ngoài |
 
-Feedforward gánh tải tĩnh để khâu I được rảnh tay. Trong [ví dụ 03](examples/03_PlainC_1kHz/main.c), FF giữ đúng 12.73 = 18·cos45° nên I về 0; tắt FF thì chính khâu I phải è cổ giữ con số đó.
+Feedforward gánh tải tĩnh để khâu I được rảnh tay. Trong [ví dụ C thuần](extras/plain_c_1khz/main.c), FF giữ đúng 12.73 = 18·cos45° nên I về 0; tắt FF thì chính khâu I phải è cổ giữ con số đó.
 
 ### Bộ lọc — khai báo bằng hằng số thời gian
 
@@ -214,7 +214,14 @@ Ngoài ra, `i_term` lưu sẵn $K_i\!\int\!e$ (đã nhân `Ki`), nên **đổi h
 | **Phát hiện kẹt** | Bắt được cả chiều dương lẫn chiều âm |
 | **Feedforward** | Thời gian lên $t_{90}$: **8.29 s → 4.55 s** |
 
-**Cách kiểm chứng.** Mã C được biên dịch bằng `arm-none-eabi-gcc 12.3.1` cho Cortex-M4, chuẩn C99, **không một cảnh báo nào** với `-Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes -Wdouble-promotion -Wundef -Wcast-align`. Các con số hành vi ở bảng trên đo bằng một bản chuyển ngữ 1:1 của `shark_pid.c` sang Python chạy trên mô hình đối tượng — không phải đo bằng chính binary C. Bộ test C chạy trực tiếp trên PC là việc còn nợ lại.
+**Cách kiểm chứng.** Mọi con số trong bảng trên đều do [`test/test_shark_pid.c`](test/test_shark_pid.c) đo bằng chính mã C, không phải bằng mô hình xấp xỉ. Bộ test chạy trên máy tính, không cần vi điều khiển và không cần thư viện test bên ngoài.
+
+CI chạy mỗi lần push, gồm bốn phần:
+
+- **Test** với cả `gcc` lẫn `clang`, `-Werror`, rồi chạy lại dưới **AddressSanitizer + UBSan**.
+- **Cross-compile** cho Cortex-M0 và Cortex-M4 với đầy đủ `-Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes -Wdouble-promotion -Wundef -Wcast-align -Werror`, kèm báo cáo kích thước.
+- **Arduino Lint** ở chế độ `library-manager: submit` + `compliance: strict`.
+- **Biên dịch sketch** cho Arduino Uno.
 
 ---
 
@@ -222,9 +229,18 @@ Ngoài ra, `i_term` lưu sẵn $K_i\!\int\!e$ (đã nhân `Ki`), nên **đổi h
 
 | Thư mục | Nội dung |
 |---|---|
-| [`01_Heater_Basic`](examples/01_Heater_Basic) | Lò sấy một chiều: vùng chết, lọc D, biến tốc độ tích phân |
-| [`02_Motor_Bidirectional`](examples/02_Motor_Bidirectional) | Động cơ DC hai chiều qua cầu H: giới hạn dốc, phát hiện kẹt, ngõ ra âm |
-| [`03_PlainC_1kHz`](examples/03_PlainC_1kHz) | C thuần, khớp robot 1 kHz với feedforward bù trọng lực. Biên dịch chạy được ngay trên PC |
+| [`examples/01_Heater_Basic`](examples/01_Heater_Basic) | Lò sấy một chiều: vùng chết, lọc D, biến tốc độ tích phân |
+| [`examples/02_Motor_Bidirectional`](examples/02_Motor_Bidirectional) | Động cơ DC hai chiều qua cầu H: giới hạn dốc, phát hiện kẹt, ngõ ra âm |
+| [`extras/plain_c_1khz`](extras/plain_c_1khz) | C thuần, khớp robot 1 kHz với feedforward bù trọng lực. Biên dịch chạy được ngay trên PC |
+
+> `extras/` là thư mục chuẩn của Arduino cho những thứ IDE không dùng tới — ví dụ C thuần nằm ở đó nên `examples/` chỉ còn sketch `.ino` đúng đặc tả.
+
+## Chạy test
+
+```sh
+make -C test test      # biên dịch và chạy toàn bộ, không cần vi điều khiển
+make -C test asan      # chạy lại dưới AddressSanitizer + UBSan
+```
 
 ---
 
@@ -294,7 +310,9 @@ At steady state the proportional term outputs $-K_p\,r\,(1-b)$, so **the integra
 
 ## Verification
 
-Compiled with `arm-none-eabi-gcc 12.3.1` for Cortex-M4, C99, **zero warnings** under `-Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes -Wdouble-promotion -Wundef -Wcast-align`. Behavioural figures in the Vietnamese table above were measured with a line-by-line Python transliteration of `shark_pid.c` against a plant model, not by executing the C binary itself. A native C test suite is still outstanding.
+`test/test_shark_pid.c` is a dependency-free host test suite — no microcontroller, no test framework. Run it with `make -C test test`.
+
+CI on every push: the suite under both `gcc` and `clang` with `-Werror`, then again under AddressSanitizer + UBSan; cross-compilation for Cortex-M0 and Cortex-M4 with the full strict warning set and `-Werror`; Arduino Lint in `library-manager: submit` / `compliance: strict` mode; and sketch compilation for Arduino Uno.
 
 ## License
 

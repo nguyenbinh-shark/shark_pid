@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test · ${{ matrix.cc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and run test suite
+        run: make -C test test CC=${{ matrix.cc }} WERROR=-Werror
+
+      - name: Re-run under AddressSanitizer + UBSan
+        run: make -C test asan CC=${{ matrix.cc }} WERROR=-Werror
+
+  embedded:
+    name: Cross-compile · ARM Cortex-M
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arm-none-eabi toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Build core for Cortex-M0 and Cortex-M4, report size
+        run: |
+          set -eu
+          WARN="-Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes"
+          WARN="$WARN -Wmissing-prototypes -Wdouble-promotion -Wundef -Wcast-align -Werror"
+          for cpu in cortex-m0 cortex-m4; do
+            echo "--- $cpu ---"
+            arm-none-eabi-gcc -c -std=c99 -Os -mthumb -mcpu=$cpu $WARN \
+              src/shark_pid.c -o /tmp/$cpu.o
+            arm-none-eabi-size /tmp/$cpu.o
+          done
+
+      - name: Build C++ wrapper
+        run: |
+          set -eu
+          cat > /tmp/wrapper_check.cpp <<'EOF'
+          #include "SharkPID.hpp"
+          static SharkPID pid(2.0f, 0.35f, 0.8f, -255.0f, 255.0f);
+          float run(float sp, float meas, float dt)
+          {
+              float u = pid.update(sp, meas, dt);
+              u += pid(sp, meas, dt);
+              u += pid.updateFF(sp, meas, dt, 1.5f);
+              pid.cfg().d_tau = 0.02f;
+              pid.preload(10.0f);
+              pid.setGains(1.0f, 2.0f, 3.0f);
+              pid.setOutputLimits(-50.0f, 50.0f);
+              pid.setIntegralLimits(-20.0f, 20.0f);
+              if (pid.isStalled() || pid.isSaturated() || pid.hadBadInput())
+                  pid.clearStatus();
+              return u + pid.pTerm() + pid.iTerm() + pid.dTerm()
+                       + pid.ffTerm() + pid.dtUsed() + pid.error() + pid.output();
+          }
+          EOF
+          arm-none-eabi-g++ -c -std=c++11 -Os -mthumb -mcpu=cortex-m4 \
+            -Wall -Wextra -Wpedantic -Werror -Isrc \
+            /tmp/wrapper_check.cpp -o /tmp/wrapper_check.o
+
+      - name: Build the plain-C example
+        run: |
+          arm-none-eabi-gcc -c -std=c99 -Os -mthumb -mcpu=cortex-m4 \
+            -Wall -Wextra -Wpedantic -Werror -Isrc \
+            extras/plain_c_1khz/main.c -o /tmp/example_plain_c.o
+
+  arduino:
+    name: Arduino · lint and compile examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Arduino Lint (Library Manager submission rules)
+        uses: arduino/arduino-lint-action@v1
+        with:
+          library-manager: submit
+          compliance: strict
+
+      - name: Compile sketches for Arduino Uno
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:avr:uno
+          sketch-paths: |
+            - examples/01_Heater_Basic
+            - examples/02_Motor_Bidirectional
+          libraries: |
+            - source-path: ./
+          enable-warnings-report: true

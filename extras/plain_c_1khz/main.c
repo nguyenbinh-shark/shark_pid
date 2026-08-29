@@ -1,5 +1,5 @@
 /**
- * 03_PlainC_1kHz — Dùng shark_pid từ C thuần, không Arduino.
+* plain_c_1khz — Dùng shark_pid từ C thuần, không Arduino.
  *
  * Kịch bản: một khớp cánh tay robot chạy trong ngắt timer 1 kHz trên STM32.
  * Minh hoạ hai thứ mà bản Arduino không thể hiện rõ:

@@ -63,11 +63,18 @@ Bản đầu tiên.
 - [`docs/so-sanh.md`](docs/so-sanh.md): đối chiếu chi tiết với
   WangHongxi2001/PID_Library và SimpleFOC, kèm bảng tra cờ cũ → tham số mới và
   công thức quy đổi hệ số.
-- Ba ví dụ: lò sấy một chiều, động cơ DC hai chiều, và khớp robot 1 kHz viết
-  bằng C thuần chạy được ngay trên PC.
+- Hai sketch Arduino trong `examples/` (lò sấy một chiều, động cơ DC hai chiều)
+  và một ví dụ C thuần trong `extras/plain_c_1khz` (khớp robot 1 kHz với
+  feedforward bù trọng lực, chạy được ngay trên PC).
 
-### Còn nợ
+### Kiểm chứng
 
-- Bộ test C chạy trực tiếp trên PC. Bản 1.0.0 được kiểm chứng bằng biên dịch
-  nghiêm ngặt (`arm-none-eabi-gcc 12.3.1`, C99, không cảnh báo) cộng với một
-  bản chuyển ngữ 1:1 sang Python chạy trên mô hình đối tượng.
+- `test/test_shark_pid.c`: bộ test chạy trên máy tính, không cần vi điều khiển
+  và không phụ thuộc thư viện test nào. 11 nhóm test bao gồm độc lập tần số lấy
+  mẫu, chống windup, derivative kick, vùng chết, NaN/Inf, giới hạn dốc, đổi hệ
+  số không giật, phát hiện kẹt, feedforward, bất biến API và bẫy `b < 1`.
+- CI chạy bộ test với `gcc` và `clang` (`-Werror`), rồi chạy lại dưới
+  AddressSanitizer và UBSan.
+- CI cross-compile cho Cortex-M0 và Cortex-M4 với đầy đủ cảnh báo nghiêm ngặt.
+- CI chạy Arduino Lint ở chế độ `library-manager: submit` và biên dịch sketch
+  cho Arduino Uno.
