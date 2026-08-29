@@ -1,5 +1,9 @@
 # shark_pid
 
+[![CI](https://github.com/nguyenbinh-shark/shark_pid/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyenbinh-shark/shark_pid/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![C99](https://img.shields.io/badge/C-99-blue.svg)](src/shark_pid.c)
+
 **Bộ điều khiển PID nhúng, độc lập tần số lấy mẫu.** Lõi C99 không phụ thuộc Arduino hay HAL, kèm vỏ bọc C++ cho Arduino/ESP32/PlatformIO.
 
 > *Sample-rate independent embedded PID controller. Portable C99 core, optional C++ wrapper. Scroll down for [English](#english).*
