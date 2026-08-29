@@ -1,0 +1,43 @@
+{
+  "name": "shark_pid",
+  "version": "1.0.0",
+  "description": "Sample-rate independent embedded PID controller with a portable C99 core. Explicit dt in every term, setpoint weighting (2-DOF), feedforward, back-calculation and conditional-integration anti-windup, dt-aware filters, slew limiting, recoverable stall detection, NaN rejection and bumpless transfer. No Arduino or HAL dependency.",
+  "keywords": [
+    "pid",
+    "control",
+    "controller",
+    "motor",
+    "robotics",
+    "feedforward",
+    "anti-windup",
+    "servo"
+  ],
+  "authors": [
+    {
+      "name": "Tran Nguyen Binh",
+      "email": "trannguyenbinh.shark@gmail.com",
+      "url": "https://github.com/nguyenbinh-shark",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nguyenbinh-shark/shark_pid.git"
+  },
+  "license": "MIT",
+  "homepage": "https://nguyenbinh-shark.github.io/pid-series/",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": [
+    "shark_pid.h",
+    "SharkPID.hpp"
+  ],
+  "export": {
+    "exclude": [
+      "docs/*"
+    ]
+  },
+  "build": {
+    "srcDir": "src"
+  }
+}

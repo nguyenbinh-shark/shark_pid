@@ -1,0 +1,32 @@
+# Build output
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+*.d
+build/
+.pio/
+.pioenvs/
+.piolibdeps/
+Debug/
+Release/
+demo
+demo.exe
+a.out
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Python (scratch simulation)
+__pycache__/
+*.pyc
+.venv/
