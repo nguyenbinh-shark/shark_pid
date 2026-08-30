@@ -20,7 +20,7 @@
  *
  * Ba o cuoi la phan them cua ban nay: truoc day Integrator method va
  * Anti-windup method bi viet chet trong mdlStart nen khong doi chieu duoc hai
- * cau hinh dang gia nhat cua 2.0 — Backward Euler va back-calculation. Da co
+ * cau hinh dang gia nhat — Backward Euler va back-calculation. Da co
  * .slx cu thi phai sua lai chuoi Parameters cho du 14 o (hoac chay lai
  * make_shark_mask).
  */

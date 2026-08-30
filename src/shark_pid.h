@@ -4,7 +4,7 @@
  *          `PID Controller (2DOF)` trong MATLAB/Simulink.
  *          Embedded 2-DOF PID controller, faithful to the Simulink block.
  * @author  Trần Nguyên Bình (github.com/nguyenbinh-shark)
- * @version 2.0.0
+ * @version 1.0.0
  * @license MIT
  *
  * Thiết kế theo 4 nguyên tắc:
@@ -36,10 +36,10 @@
 extern "C" {
 #endif
 
-#define SHARK_PID_VERSION_MAJOR 2
+#define SHARK_PID_VERSION_MAJOR 1
 #define SHARK_PID_VERSION_MINOR 0
 #define SHARK_PID_VERSION_PATCH 0
-#define SHARK_PID_VERSION_STR   "2.0.0"
+#define SHARK_PID_VERSION_STR   "1.0.0"
 
 /* ------------------------------------------------------------------------- */
 /* Cờ chế độ (behaviour flags)                                               */

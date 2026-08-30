@@ -25,9 +25,8 @@ Viết bởi [Trần Nguyên Bình](https://github.com/nguyenbinh-shark), như p
 | Mới học PID, chỉ muốn nó chạy | Mục 1 → 5, rồi mở [`examples/01_Heater_Basic`](examples/01_Heater_Basic) |
 | Đã biết PID, cần biết thư viện có gì | Mục 6, 8, 9 |
 | Đang dùng Simulink, muốn khớp mô phỏng với firmware | Mục 8 và 12 |
-| Đang dùng shark_pid 1.x | Mục 14 |
 | Gặp lỗi, hệ chạy sai | Mục 10 |
-| Gặp từ lạ trong tài liệu | Mục 15 — từ điển thuật ngữ |
+| Gặp từ lạ trong tài liệu | Mục 14 — từ điển thuật ngữ |
 
 ### Mục lục
 
@@ -44,9 +43,8 @@ Viết bởi [Trần Nguyên Bình](https://github.com/nguyenbinh-shark), như p
 11. [Chuyển tay sang tự động không giật](#11-chuyển-tay-sang-tự-động-không-giật)
 12. [Tự kiểm chứng với Simulink](#12-tự-kiểm-chứng-với-simulink)
 13. [Ví dụ đầy đủ](#13-ví-dụ-đầy-đủ)
-14. [Nâng cấp từ phiên bản 1.x](#14-nâng-cấp-từ-phiên-bản-1x)
-15. [Từ điển thuật ngữ](#15-từ-điển-thuật-ngữ)
-16. [Đọc thêm](#16-đọc-thêm)
+14. [Từ điển thuật ngữ](#14-từ-điển-thuật-ngữ)
+15. [Đọc thêm](#15-đọc-thêm)
 
 ---
 
@@ -436,31 +434,7 @@ Người mới nên bắt đầu từ ví dụ 01.
 
 ---
 
-## 14. Nâng cấp từ phiên bản 1.x
-
-Bốn chỗ hay vướng nhất khi chuyển code từ 1.x sang 2.0:
-
-```c
-/* 1. Bộ lọc khâu D khai bằng N thay vì hằng số thời gian */
-cfg.d_tau = 0.01f;      ->   cfg.n = 100.0f;          /* n = 1 / d_tau */
-
-/* 2. Đổi tên cho khớp ô Kb của khối Simulink */
-cfg.kt = 3.0f;          ->   cfg.kb = 3.0f;
-
-/* 3. Feedforward chuyển ra ngoài, thành một phép cộng */
-shark_pid_update_ff(&pid, r, y, dt, ff);
-                        ->   shark_pid_update(&pid, r, y, dt) + ff;
-
-/* 4. i_term đổi nghĩa: giờ là NGÕ RA của khâu I.
-      Trạng thái bên trong nằm ở pid.i_state */
-pid.i_term
-```
-
-Các tính năng `deadband`, `ci_a` / `ci_b`, `out_tau`, `out_slew`, `stall_*` và hàm `shark_pid_clear_status()` đã bị gỡ khỏi lõi. Bảng ở [mục 9](#9-những-gì-thư-viện-cố-tình-không-có) chỉ chỗ thay thế cho từng món.
-
----
-
-## 15. Từ điển thuật ngữ
+## 14. Từ điển thuật ngữ
 
 | Từ | Nghĩa |
 |---|---|
@@ -482,7 +456,7 @@ Các tính năng `deadband`, `ci_a` / `ci_b`, `out_tau`, `out_slew`, `stall_*` v
 
 ---
 
-## 16. Đọc thêm
+## 15. Đọc thêm
 
 Series **Thực Chiến Lập Trình PID** giải thích cặn kẽ từng kỹ thuật trong thư viện này:
 
@@ -491,9 +465,9 @@ Series **Thực Chiến Lập Trình PID** giải thích cặn kẽ từng kỹ 
 3. [Tinh chỉnh I và D](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-3-tinh-chinh-i-va-d/)
 4. [Đóng gói thư viện](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-4-dong-goi-thu-vien/)
 5. [Đọc hiểu PID của người đi làm](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-5-doc-pid-nguoi-di-lam/)
-6. [Cấu hình khối PID Simulink "chuẩn vị" code C](https://nguyenbinh-shark.github.io/posts/2026/08/simscape-multibody-pid-simulink-sim2real/) — bài mà thư viện 2.0 này là kết luận
+6. [Cấu hình khối PID Simulink "chuẩn vị" code C](https://nguyenbinh-shark.github.io/posts/2026/08/simscape-multibody-pid-simulink-sim2real/) — bài mà thư viện này là kết luận
 
-[`docs/so-sanh.md`](docs/so-sanh.md) kể lại thư viện học được gì từ hai thư viện PID mã nguồn mở phổ biến, và vì sao bản 2.0 lại gỡ bớt phần lớn tính năng.
+[`docs/so-sanh.md`](docs/so-sanh.md) kể lại thư viện học được gì từ hai thư viện PID mã nguồn mở phổ biến, và vì sao nó cố tình không mang theo phần lớn những tính năng đó.
 
 ---
 
@@ -607,10 +581,6 @@ verify_shark_vs_pid2('kp', 4, 'ki', 1.5, 'kd', 0.1, 'n', 250, 'Ts', 0.001);
 ```
 
 The pass threshold is `1e-5` relative — the rounding floor of C `float` against Simulink `double`.
-
-## Upgrading from 1.x
-
-`d_tau` became `n` (`n = 1 / d_tau`), `kt` became `kb`, and `i_term` is now the integrator's *output* while the internal state lives in `i_state`. Feedforward, deadband, changing integral rate, output filter, slew limiting and stall detection were removed from the core — add them in the calling layer.
 
 ## License
 

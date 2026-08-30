@@ -1,6 +1,6 @@
 /**
  * @file    test_shark_pid.c
- * @brief   Bộ test shark_pid 2.0 — chạy trên máy tính, không cần vi điều
+ * @brief   Bộ test shark_pid — chạy trên máy tính, không cần vi điều
  *          khiển và không phụ thuộc thư viện test bên ngoài.
  *          Trả về 0 nếu tất cả đạt, 1 nếu có bài hỏng.
  *

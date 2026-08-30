@@ -15,25 +15,24 @@ Nếu bạn chỉ muốn dùng thư viện, [README](../README.md) là đủ.
 
 ---
 
-## Trước hết: một lưu ý quan trọng về bản 2.0
+## Trước hết: phạm vi của thư viện này
 
-shark_pid 2.0 đã **đổi mục tiêu**. Nó không còn cố trở thành "bộ PID nhúng đầy
-đủ tính năng" nữa, mà trở thành **bản sao số của khối `PID Controller (2DOF)`
-trong Simulink**.
+shark_pid không cố trở thành "bộ PID nhúng đầy đủ tính năng". Nó là **bản sao
+số của khối `PID Controller (2DOF)` trong Simulink**, không hơn.
 
-Hệ quả: **phần lớn tính năng học được từ hai thư viện dưới đây đã bị gỡ khỏi
-lõi** — vùng chết, biến tốc độ tích phân, lọc lệnh ra, giới hạn dốc, phát hiện
-kẹt cơ cấu, feedforward.
+Hệ quả: **nhiều kỹ thuật hay của hai thư viện dưới đây cố tình không có mặt
+trong lõi** — vùng chết, biến tốc độ tích phân, lọc lệnh ra, giới hạn dốc, phát
+hiện kẹt cơ cấu, feedforward.
 
-Chúng không biến mất hẳn; chúng chuyển ra tầng gọi. Lý do đầy đủ ở
-[mục 4](#4-vì-sao-bản-20-lại-gỡ-bớt-tính-năng).
+Chúng không bị bỏ quên; chúng thuộc về tầng gọi. Lý do đầy đủ ở
+[mục 4](#4-vì-sao-thư-viện-không-có-những-tính-năng-đó).
 
 ### Mục lục
 
 1. [WangHongxi2001/PID_Library](#1-wanghongxi2001pid_library)
 2. [SimpleFOC (Arduino-FOC)](#2-simplefoc-arduino-foc)
 3. [Bảng tra: chuyển code từ PID_Library sang shark_pid](#3-bảng-tra-chuyển-code-từ-pid_library-sang-shark_pid)
-4. [Vì sao bản 2.0 lại gỡ bớt tính năng](#4-vì-sao-bản-20-lại-gỡ-bớt-tính-năng)
+4. [Vì sao thư viện không có những tính năng đó](#4-vì-sao-thư-viện-không-có-những-tính-năng-đó)
 
 ---
 
@@ -49,14 +48,14 @@ bài toán khác.
 
 ### 1.1. Những gì shark_pid học được
 
-| Kỹ thuật | Tên ở bản gốc | Tương đương ở shark_pid 2.0 |
+| Kỹ thuật | Tên ở bản gốc | Tương đương ở shark_pid |
 |---|---|---|
 | Tích phân hình thang | `f_Trapezoid_Intergral` | Cờ `SHARK_PID_F_TRAPEZOID_I` |
 | Khâu D nhìn giá trị đo | `f_Derivative_On_Measurement` | `cfg.c = 0` |
 | Lọc khâu D | `f_Derivative_Filter` | `cfg.n` *(ô Filter coefficient N)* |
-| Biến tốc độ tích phân A/B | `f_Changing_Integral_Rate` | **đã gỡ** |
-| Lọc lệnh ra | `f_Output_Filter` | **đã gỡ** |
-| Phát hiện kẹt cơ cấu | `f_PID_ErrorHandle` | **đã gỡ** |
+| Biến tốc độ tích phân A/B | `f_Changing_Integral_Rate` | **không có** |
+| Lọc lệnh ra | `f_Output_Filter` | **không có** |
+| Phát hiện kẹt cơ cấu | `f_PID_ErrorHandle` | **không có** |
 
 Có một chi tiết bản gốc làm rất đúng mà ít người để ý: **bộ tích luỹ của nó đã
 chứa sẵn hệ số `Ki`**.
@@ -109,7 +108,7 @@ Kết quả trả về không phải trị tuyệt đối.
 
 Macro này nằm ngay trong `f_PID_ErrorHandle` — phần logic phát hiện lỗi.
 
-shark_pid không dùng macro cho việc này. Lõi 2.0 thậm chí không gọi một hàm nào
+shark_pid không dùng macro cho việc này. Lõi thư viện thậm chí không gọi một hàm nào
 của `<math.h>`, chỉ dùng so sánh và bốn phép toán cơ bản.
 
 #### c) Chống windup hở đúng vào lúc cần nhất
@@ -139,7 +138,7 @@ biên, và có thêm back-calculation làm lựa chọn mượt hơn.
 > `Target = 0`; nó đếm theo số vòng lặp chứ không theo thời gian; và cờ lỗi một
 > khi bật thì chốt vĩnh viễn.
 >
-> shark_pid 2.0 không có tính năng này, vì nó thuộc về tầng ứng dụng: bạn đếm
+> shark_pid không có tính năng này, vì nó thuộc về tầng ứng dụng: bạn đếm
 > xem `pid.isSaturated()` bật liên tục bao lâu trong khi giá trị đo không nhúc
 > nhích.
 
@@ -167,7 +166,7 @@ kể cả khi bộ đếm bị tràn. Đó chính là hàm `SharkPID::update()` 
 
 ### Những gì shark_pid thêm vào so với SimpleFOC
 
-| | SimpleFOC | shark_pid 2.0 |
+| | SimpleFOC | shark_pid |
 |---|---|---|
 | Lọc khâu D | Không có | `cfg.n`, hệ số suy lại từ `dt` mỗi chu kỳ |
 | Khâu D nhìn giá trị đo | Không có — nên bị derivative kick | `cfg.c = 0` |
@@ -186,16 +185,16 @@ Nếu bạn đang có code chạy trên `WangHongxi2001/PID_Library` và muốn 
 
 ### 3.1. Đổi tên cờ và tham số
 
-| Bản gốc | shark_pid 2.0 |
+| Bản gốc | shark_pid |
 |---|---|
 | `Integral_Limit` | `cfg.i_min` / `cfg.i_max` |
 | `Derivative_On_Measurement` | `cfg.c = 0.0f` *(đây là mặc định)* |
 | `Trapezoid_Intergral` | `SHARK_PID_F_TRAPEZOID_I` |
 | `Proportional_On_Measurement` | `cfg.b = 0.0f` *(bản gốc có khai báo cờ này nhưng chưa cài đặt)* |
 | `DerivativeFilter` | `cfg.n` — chú ý: `N` tính theo rad/giây, **không phải** `alpha` |
-| `OutputFilter` | **Không còn** — tự lọc thông thấp sau lệnh, ở tầng gọi |
-| `ChangingIntegralRate` | **Không còn** |
-| `ErrorHandle` | **Không còn** — đếm `pid.isSaturated()` ở tầng ứng dụng |
+| `OutputFilter` | **Không có** — tự lọc thông thấp sau lệnh, ở tầng gọi |
+| `ChangingIntegralRate` | **Không có** |
+| `ErrorHandle` | **Không có** — đếm `pid.isSaturated()` ở tầng ứng dụng |
 
 ### 3.2. Quy đổi giá trị hệ số
 
@@ -224,7 +223,7 @@ gian 3 ms.
 
 ---
 
-## 4. Vì sao bản 2.0 lại gỡ bớt tính năng
+## 4. Vì sao thư viện không có những tính năng đó
 
 Biến tốc độ tích phân, lọc lệnh ra, phát hiện kẹt, vùng chết, giới hạn dốc và
 feedforward — **không cái nào có ô tương ứng trong khối `PID Controller (2DOF)`
@@ -238,7 +237,7 @@ trên phần cứng"* thì đó lại là vấn đề lớn nhất:
 nữa.** Và thế là bạn mất khả năng kiểm chứng trước khi nạp — đúng thứ mà
 [`extras/Test_Shark_PID/`](../extras/Test_Shark_PID/) sinh ra để làm.
 
-Nên bản 2.0 chọn: **giữ lõi đúng bằng khối, đẩy phần còn lại ra tầng gọi.** Cách
+Nên thư viện chọn: **giữ lõi đúng bằng khối, đẩy phần còn lại ra tầng gọi.** Cách
 này cũng đúng với tinh thần Simulink — ở đó chúng vốn là các khối `Dead Zone`,
 `Rate Limiter`, `Sum`, `Discrete Filter` nối *phía sau* khối PID, chứ không nằm
 bên trong nó.
