@@ -35,7 +35,7 @@ Viết bởi [Trần Nguyên Bình](https://github.com/nguyenbinh-shark), như p
 3. [Chạy thử trong 5 phút](#3-chạy-thử-trong-5-phút)
 4. [Ba con số quan trọng nhất: Kp, Ki, Kd](#4-ba-con-số-quan-trọng-nhất-kp-ki-kd)
 5. [Chỉnh tham số theo thứ tự](#5-chỉnh-tham-số-theo-thứ-tự)
-6. [Các tham số còn lại, giải thích bằng tiếng người](#6-các-tham-số-còn-lại-giải-thích-bằng-tiếng-người)
+6. [Các tham số còn lại, giải thích bằng ngôn ngữ](#6-các-tham-số-còn-lại-giải-thích-bằng-ngôn-ngữ)
 7. [Dùng với C thuần (STM32, ESP-IDF)](#7-dùng-với-c-thuần-stm32-esp-idf)
 8. [Bảng ánh xạ sang khối Simulink](#8-bảng-ánh-xạ-sang-khối-simulink)
 9. [Những gì thư viện cố tình không có](#9-những-gì-thư-viện-cố-tình-không-có)
