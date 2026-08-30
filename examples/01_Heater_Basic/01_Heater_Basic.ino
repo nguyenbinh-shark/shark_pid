@@ -8,8 +8,8 @@
  *     tích phân bằng i_min/i_max cộng chống windup kiểu clamping.
  *
  * Mọi giá trị dưới đây điền thẳng được vào khối `PID Controller (2DOF)`
- * của Simulink — chạy `shark_pid_map2simulink` trong thư mục extras/Test_Shark_PID/ để
- * lấy bảng ánh xạ.
+ * của Simulink. Bảng ánh xạ từng tham số sang từng ô: xem README.md (mục 8)
+ * hoặc extras/Test_Shark_PID/README.md.
  *
  * Bài học tương ứng trên blog:
  *   https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-2-cac-benh-pid-dau-tay/

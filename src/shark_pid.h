@@ -58,7 +58,7 @@ typedef enum {
 } shark_pid_flag_t;
 
 /* Khối chỉ chọn được MỘT phương pháp chống windup. Bật cả hai cờ thì clamping
-   thắng — đúng như shark_pid_map2simulink() ánh xạ. */
+   thắng, đúng như bảng ánh xạ trong extras/Test_Shark_PID/README.md. */
 
 /* ------------------------------------------------------------------------- */
 /* Trạng thái (bitmask — nhiều cờ có thể cùng xảy ra)                        */

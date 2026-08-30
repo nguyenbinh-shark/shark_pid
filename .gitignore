@@ -42,6 +42,4 @@ __pycache__/
 slprj/
 sccprj/
 # Mô hình do script tự dựng
-cmp_shark_pid2.slx
-shark_pid_check.slx
-shark_pid_lib.slx
+
