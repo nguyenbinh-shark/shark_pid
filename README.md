@@ -175,7 +175,7 @@ Lúc này hệ sẽ tới gần đích nhưng dừng lại trước đích một
 
 ---
 
-## 6. Các tham số còn lại, giải thích bằng tiếng người
+## 6. Các tham số còn lại, giải thích bằng ngôn ngữ
 
 ### 6.1. `b` và `c` — phần "2 bậc tự do" (2DOF)
 
