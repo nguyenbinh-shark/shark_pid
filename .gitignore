@@ -43,3 +43,9 @@ slprj/
 sccprj/
 # Mô hình do script tự dựng
 
+
+# Bo test
+test/shark_pid_test
+test/shark_pid_test.exe
+test/shark_pid_test_asan
+test/shark_pid_test_asan.exe

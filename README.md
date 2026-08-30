@@ -405,6 +405,22 @@ Script tự biên dịch, tự dựng mô hình, in ra sai số lớn nhất và
 
 Hướng dẫn chi tiết kèm video: [README của thư mục đó](extras/Test_Shark_PID/README.md).
 
+### Không có MATLAB? Kiểm chứng ngay trên máy tính
+
+Thư mục [`test/`](test/) có bộ test viết bằng C thuần: không cần vi điều khiển, không cần MATLAB, không phụ thuộc thư viện test nào.
+
+```bash
+cd test
+make test          # biên dịch và chạy
+make asan          # chạy lại dưới AddressSanitizer + UBSan
+```
+
+**Nhóm test số 0** làm đúng việc mà `verify_shark_vs_pid2.m` làm trong Simulink, nhưng bằng C: nó dựng lại phương trình sai phân của khối `PID Controller (2DOF)` bằng kiểu `double`, độc lập với lõi thư viện, rồi so từng nhịp trên 17 cấu hình — gồm cả bão hoà, kẹp khâu I, hai kiểu tích phân và hai kiểu chống windup. Sai số lớn nhất đo được là `3.3e-6`, đúng sàn làm tròn của `float`.
+
+Mười nhóm còn lại kiểm tra hành vi: độc lập tần số lấy mẫu, chống windup, kẹp khâu I, derivative kick, bộ lọc `N`, chặn NaN/Inf, đổi hệ số không giật, preload, bất biến API, và bẫy `b < 1` ở [mục 6.1](#61-b-và-c--phần-2-bậc-tự-do-2dof).
+
+Tổng cộng 66 phép kiểm tra. CI chạy toàn bộ với `gcc` và `clang` ở `-Werror`, rồi chạy lại dưới AddressSanitizer và UBSan.
+
 ---
 
 ## 13. Ví dụ đầy đủ
@@ -414,6 +430,7 @@ Hướng dẫn chi tiết kèm video: [README của thư mục đó](extras/Test
 | [`examples/01_Heater_Basic`](examples/01_Heater_Basic) | Lò sấy, cơ cấu một chiều | Lọc D bằng `n` nhỏ, kẹp khâu I, chống windup kiểu clamping, in trạng thái ra Serial |
 | [`examples/02_Motor_Bidirectional`](examples/02_Motor_Bidirectional) | Động cơ DC hai chiều qua cầu H | Lệnh ra âm, back-calculation, và cách tự thêm giới hạn dốc ở tầng gọi |
 | [`extras/Test_Shark_PID`](extras/Test_Shark_PID) | Đối chiếu với Simulink | Cách chứng minh firmware khớp mô phỏng |
+| [`test`](test) | Bộ test chạy trên PC | 66 phép kiểm tra, gồm nhóm đối chiếu với phương trình của khối |
 
 Người mới nên bắt đầu từ ví dụ 01.
 
@@ -421,7 +438,7 @@ Người mới nên bắt đầu từ ví dụ 01.
 
 ## 14. Nâng cấp từ phiên bản 1.x
 
-Danh sách đầy đủ ở [CHANGELOG.md](CHANGELOG.md). Bốn chỗ hay vướng nhất:
+Bốn chỗ hay vướng nhất khi chuyển code từ 1.x sang 2.0:
 
 ```c
 /* 1. Bộ lọc khâu D khai bằng N thay vì hằng số thời gian */
@@ -593,7 +610,7 @@ The pass threshold is `1e-5` relative — the rounding floor of C `float` agains
 
 ## Upgrading from 1.x
 
-`d_tau` became `n` (`n = 1 / d_tau`), `kt` became `kb`, and `i_term` is now the integrator's *output* while the internal state lives in `i_state`. Feedforward, deadband, changing integral rate, output filter, slew limiting and stall detection were removed from the core — add them in the calling layer. See [CHANGELOG.md](CHANGELOG.md).
+`d_tau` became `n` (`n = 1 / d_tau`), `kt` became `kb`, and `i_term` is now the integrator's *output* while the internal state lives in `i_state`. Feedforward, deadband, changing integral rate, output filter, slew limiting and stall detection were removed from the core — add them in the calling layer.
 
 ## License
 

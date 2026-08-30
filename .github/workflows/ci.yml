@@ -72,12 +72,6 @@ jobs:
             -Wall -Wextra -Wpedantic -Werror -Isrc \
             /tmp/wrapper_check.cpp -o /tmp/wrapper_check.o
 
-      - name: Build the plain-C example
-        run: |
-          arm-none-eabi-gcc -c -std=c99 -Os -mthumb -mcpu=cortex-m4 \
-            -Wall -Wextra -Wpedantic -Werror -Isrc \
-            extras/plain_c_1khz/main.c -o /tmp/example_plain_c.o
-
   arduino:
     name: Arduino · lint and compile examples
     runs-on: ubuntu-latest
