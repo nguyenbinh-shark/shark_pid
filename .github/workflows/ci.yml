@@ -15,7 +15,7 @@ jobs:
       matrix:
         cc: [gcc, clang]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build and run test suite
         run: make -C test test CC=${{ matrix.cc }} WERROR=-Werror
@@ -27,7 +27,7 @@ jobs:
     name: Cross-compile · ARM Cortex-M
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install arm-none-eabi toolchain
         run: |
@@ -76,10 +76,10 @@ jobs:
     name: Arduino · lint and compile examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Arduino Lint (Library Manager submission rules)
-        uses: arduino/arduino-lint-action@v1
+        uses: arduino/arduino-lint-action@v3
         with:
           library-manager: submit
           compliance: strict
