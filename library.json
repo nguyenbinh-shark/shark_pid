@@ -1,14 +1,16 @@
 {
   "name": "shark_pid",
-  "version": "1.0.0",
-  "description": "Sample-rate independent embedded PID controller with a portable C99 core. Explicit dt in every term, setpoint weighting (2-DOF), feedforward, back-calculation and conditional-integration anti-windup, dt-aware filters, slew limiting, recoverable stall detection, NaN rejection and bumpless transfer. No Arduino or HAL dependency.",
+  "version": "2.0.0",
+  "description": "Embedded 2-DOF PID controller whose C99 core is a faithful reimplementation of the Simulink PID Controller (2DOF) block: every parameter maps 1:1 to a Block Parameters field, and the two match to numerical noise even when the output saturates. Explicit dt in every term, setpoint weighting (b, c), filter coefficient N, clamping and back-calculation anti-windup, NaN rejection and bumpless transfer. No Arduino or HAL dependency.",
   "keywords": [
     "pid",
     "control",
     "controller",
     "motor",
     "robotics",
-    "feedforward",
+    "simulink",
+    "matlab",
+    "2dof",
     "anti-windup",
     "servo"
   ],

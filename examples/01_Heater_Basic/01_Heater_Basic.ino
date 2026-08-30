@@ -3,8 +3,13 @@
  *
  * Đặc điểm bài toán:
  *   - Sò công suất chỉ nung được, không làm lạnh -> ngõ ra [0, 255].
- *   - Cảm biến nhiệt có nhiễu -> cần lọc khâu D.
- *   - Quán tính nhiệt lớn -> rất dễ windup khi khởi động nguội.
+ *   - Cảm biến nhiệt có nhiễu -> cần lọc khâu D (N nhỏ = lọc mạnh).
+ *   - Quán tính nhiệt lớn -> rất dễ windup khi khởi động nguội, nên kẹp
+ *     tích phân bằng i_min/i_max cộng chống windup kiểu clamping.
+ *
+ * Mọi giá trị dưới đây điền thẳng được vào khối `PID Controller (2DOF)`
+ * của Simulink — chạy `shark_pid_map2simulink` trong thư mục extras/Test_Shark_PID/ để
+ * lấy bảng ánh xạ.
  *
  * Bài học tương ứng trên blog:
  *   https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-2-cac-benh-pid-dau-tay/
@@ -33,22 +38,21 @@ void setup()
     shark_pid_cfg_t cfg;
     shark_pid_cfg_default(&cfg);
 
-    cfg.kp = 8.0f;
-    cfg.ki = 0.6f;                      // đơn vị 1/giây — KHÔNG phụ thuộc PERIOD_MS
-    cfg.kd = 12.0f;                     // đơn vị giây
+    cfg.kp = 8.0f;                      // ô P
+    cfg.ki = 0.6f;                      // ô I, đơn vị 1/giây — KHÔNG phụ thuộc PERIOD_MS
+    cfg.kd = 12.0f;                     // ô D, đơn vị giây
+
+    cfg.b = 1.0f;                       // Setpoint weight (b)
+    cfg.c = 0.0f;                       // Setpoint weight (c): D chỉ nhìn cảm biến
 
     cfg.out_min = 0.0f;                 // sò chỉ nung, không làm lạnh
     cfg.out_max = 255.0f;
     cfg.i_min   = 0.0f;                 // tích phân cũng chỉ được dương
     cfg.i_max   = 255.0f;
 
-    cfg.d_tau = 0.30f;                  // lọc D 300 ms: nhiệt độ đổi chậm, nhiễu thì nhanh
-    cfg.deadband = 0.3f;                // trong ±0.3 °C thì thôi nhấp nhô
-
-    // Biến tốc độ tích phân: còn cách hơn 25 °C thì tắt hẳn khâu I,
-    // vào trong 5 °C mới mở hết. Chống windup lúc khởi động nguội.
-    cfg.ci_a = 20.0f;
-    cfg.ci_b = 5.0f;
+    // Filter coefficient N, đơn vị rad/giây. N = 3.33 tương đương hằng số
+    // thời gian 300 ms: nhiệt độ đổi chậm còn nhiễu thì nhanh.
+    cfg.n = 3.33f;
 
     cfg.dt_nominal = PERIOD_MS / 1000.0f;
 

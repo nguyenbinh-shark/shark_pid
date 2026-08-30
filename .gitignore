@@ -30,3 +30,18 @@ Thumbs.db
 __pycache__/
 *.pyc
 .venv/
+
+# MATLAB / Simulink (bộ đối chiếu ở extras/Test_Shark_PID/)
+*.mexw64
+*.mexw32
+*.mexa64
+*.mexmaci64
+*.mexmaca64
+*.asv
+*.slxc
+slprj/
+sccprj/
+# Mô hình do script tự dựng
+cmp_shark_pid2.slx
+shark_pid_check.slx
+shark_pid_lib.slx

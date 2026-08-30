@@ -56,16 +56,16 @@ jobs:
           {
               float u = pid.update(sp, meas, dt);
               u += pid(sp, meas, dt);
-              u += pid.updateFF(sp, meas, dt, 1.5f);
-              pid.cfg().d_tau = 0.02f;
+              pid.cfg().n = 50.0f;
+              pid.setFilterN(50.0f);
               pid.preload(10.0f);
               pid.setGains(1.0f, 2.0f, 3.0f);
               pid.setOutputLimits(-50.0f, 50.0f);
               pid.setIntegralLimits(-20.0f, 20.0f);
-              if (pid.isStalled() || pid.isSaturated() || pid.hadBadInput())
-                  pid.clearStatus();
+              if (pid.isSaturated() || pid.hadBadInput() || pid.hadBadDt())
+                  pid.reset();
               return u + pid.pTerm() + pid.iTerm() + pid.dTerm()
-                       + pid.ffTerm() + pid.dtUsed() + pid.error() + pid.output();
+                       + pid.dtUsed() + pid.error() + pid.output();
           }
           EOF
           arm-none-eabi-g++ -c -std=c++11 -Os -mthumb -mcpu=cortex-m4 \

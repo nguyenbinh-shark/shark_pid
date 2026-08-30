@@ -23,6 +23,9 @@
  * Hoặc tự cấp dt (khuyến nghị khi chạy trong task RTOS chu kỳ cố định):
  *
  *   float u = pid.update(setpoint, measurement, 0.001f);
+ *
+ * Mọi tham số ánh xạ 1-1 với một ô trong khối `PID Controller (2DOF)` của
+ * Simulink — xem extras/Test_Shark_PID/README.md để biết bảng ánh xạ.
  */
 class SharkPID {
 public:
@@ -60,12 +63,6 @@ public:
     float update(float setpoint, float measurement, float dt)
     {
         return shark_pid_update(&core_, setpoint, measurement, dt);
-    }
-
-    /** Như trên, cộng thêm feedforward ngoài (bù trọng lực, bù ma sát...). */
-    float updateFF(float setpoint, float measurement, float dt, float ffExtra)
-    {
-        return shark_pid_update_ff(&core_, setpoint, measurement, dt, ffExtra);
     }
 
     /** Gọi như một hàm toán học, kiểu functor giống SimpleFOC. */
@@ -127,14 +124,18 @@ public:
         core_.cfg.i_max = iMax;
     }
 
+    /** Ô Filter coefficient (N) của khối PID, rad/giây. <= 0 = bỏ lọc khâu D. */
+    void setFilterN(float n)
+    {
+        core_.cfg.n = n;
+    }
+
     /** Chuyển tay -> tự động không giật. */
     void preload(float outputNow)
     {
         shark_pid_preload(&core_, outputNow);
         initStamp();
     }
-
-    void clearStatus() { shark_pid_clear_status(&core_); }
 
     /* ---------------- Đọc trạng thái ---------------- */
 
@@ -143,15 +144,14 @@ public:
     float pTerm()  const { return core_.p_term; }
     float iTerm()  const { return core_.i_term; }
     float dTerm()  const { return core_.d_term; }
-    float ffTerm() const { return core_.ff_term; }
     float dtUsed() const { return core_.dt_used; }
 
     uint32_t status() const { return core_.status; }
     bool isSaturated() const { return (core_.status & SHARK_PID_SATURATED) != 0u; }
-    bool isStalled()   const { return (core_.status & SHARK_PID_STALLED) != 0u; }
     bool hadBadInput() const { return (core_.status & SHARK_PID_BAD_INPUT) != 0u; }
+    bool hadBadDt()    const { return (core_.status & SHARK_PID_BAD_DT) != 0u; }
 
-    /** Truy cập thẳng cấu hình để chỉnh chi tiết: pid.cfg().d_tau = 0.02f; */
+    /** Truy cập thẳng cấu hình để chỉnh chi tiết: pid.cfg().n = 50.0f; */
     shark_pid_cfg_t &cfg() { return core_.cfg; }
     shark_pid_t &core() { return core_; }
 

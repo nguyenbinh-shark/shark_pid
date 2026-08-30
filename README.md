@@ -4,53 +4,66 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![C99](https://img.shields.io/badge/C-99-blue.svg)](src/shark_pid.c)
 
-**Bộ điều khiển PID nhúng, độc lập tần số lấy mẫu.** Lõi C99 không phụ thuộc Arduino hay HAL, kèm vỏ bọc C++ cho Arduino/ESP32/PlatformIO.
+**Khối `PID Controller (2DOF)` của Simulink, viết bằng C99 để chạy trên vi điều khiển.** Mỗi tham số là đúng một ô trong Block Parameters; mô hình bạn dò trong mô phỏng chính là bộ điều khiển chạy trên phần cứng.
 
-> *Sample-rate independent embedded PID controller. Portable C99 core, optional C++ wrapper. Scroll down for [English](#english).*
+> *The Simulink PID Controller (2DOF) block, reimplemented in portable C99 for microcontrollers. Scroll down for [English](#english).*
 
 ```
-1700 byte Flash  ·  0 byte RAM tĩnh  ·  C99  ·  không cấp phát động  ·  MIT
+~1100 byte Flash  ·  0 byte RAM tĩnh  ·  C99  ·  không cấp phát động  ·  không cần -lm  ·  MIT
 ```
 
 Viết bởi [Trần Nguyên Bình](https://github.com/nguyenbinh-shark), như phần kết cho series [Thực Chiến Lập Trình PID](https://nguyenbinh-shark.github.io/pid-series/).
 
 ---
 
-## Vì sao lại thêm một thư viện PID nữa?
+## Vấn đề nó giải quyết
 
-Series PID trên blog mổ xẻ hai thư viện mã nguồn mở phổ biến. Cả hai đều hay, nhưng đều có khoảng trống thật:
+Bạn dò PID trong Simulink, đồ thị đẹp, nạp xuống STM32 — và hệ chạy khác. Không phải vì mô hình đối tượng sai, mà vì **bộ điều khiển trong mô phỏng và bộ điều khiển trong firmware là hai thứ khác nhau**: khác cách rời rạc hoá khâu I, khác cách lọc khâu D, và khác nhất là cách chống windup lúc cơ cấu chạm biên.
 
-| | [WangHongxi2001/PID_Library](https://github.com/WangHongxi2001/PID_Library) | [SimpleFOC](https://github.com/simplefoc/Arduino-FOC) | **shark_pid** |
-|---|---|---|---|
-| Tính theo `dt` thật | ✗ *(cột `ControlPeriod` khai báo mà không dùng)* | ✓ | ✓ |
-| Hệ số lọc theo `dt` | ✗ *(alpha cố định)* | — *(không có lọc D)* | ✓ *(khai bằng hằng số thời gian)* |
-| Tích phân hình thang | ✓ | ✓ | ✓ |
-| Biến tốc độ tích phân | ✓ | ✗ | ✓ |
-| Chống windup | kẹp theo dấu bộ tích luỹ | kẹp biên | kẹp có điều kiện **+** back-calculation |
-| Vi phân theo giá trị đo | ✓ | ✗ | ✓ *(qua trọng số `c`)* |
-| P theo giá trị đo | cờ khai báo nhưng **chưa cài đặt** | ✗ | ✓ *(qua trọng số `b`)* |
-| Feedforward | ✗ | ✗ | ✓ *(tĩnh, vận tốc, và ngoài)* |
-| Giới hạn dốc `du/dt` | ✗ | ✓ | ✓ |
-| Ngõ ra hai chiều | ✓ | ✓ | ✓ |
-| Chống NaN/Inf | ✗ | ✗ | ✓ |
-| Phát hiện kẹt cơ cấu | ✓ *(chia cho `Target`, chốt vĩnh viễn)* | ✗ | ✓ *(đếm theo thời gian, xoá được)* |
-| Chuyển tay→tự động không giật | ✗ | ✗ | ✓ |
-| Không phụ thuộc Arduino/HAL | ✓ | ✗ | ✓ |
+shark_pid xoá khoảng cách đó bằng cách đi ngược lại: thay vì thêm tính năng cho thư viện C rồi tìm cách mô phỏng, nó **chép đúng sơ đồ bên trong khối PID** và không có gì hơn.
 
-Chi tiết từng điểm nằm ở [`docs/so-sanh.md`](docs/so-sanh.md).
+| | |
+|---|---|
+| Tham số | 100% ánh xạ 1-1 với một ô trong Block Parameters |
+| Sai lệch so với khối, ở cấu hình không bão hoà | `1e-15` *(double)* |
+| Sai lệch so với khối, ở cấu hình **bão hoà** | `1e-15` *(double)* — chỗ mà 1.x không làm được |
+| Sai lệch thực tế trên MCU | `~4e-6` — sàn làm tròn của `float`, không khử được |
+
+Thư mục [`extras/Test_Shark_PID/`](extras/Test_Shark_PID/) có sẵn bộ đối chiếu `verify_shark_vs_pid2`: dựng mô hình Simulink gọi thẳng mã C thật qua S-Function để so sánh với khối `PID Controller (2DOF)`.
+
+---
+
+## Bảng ánh xạ
+
+| `shark_pid_cfg_t` | Ô trong Block Parameters |
+|---|---|
+| — | `PID Controller (2DOF)`, `Form = Parallel`, `Time domain = Discrete-time` |
+| `dt` *(đối số của `update`)* | `Sample time` |
+| `kp`, `ki`, `kd` | `P`, `I`, `D` |
+| `b`, `c` | `Setpoint weight (b)`, `Setpoint weight (c)` |
+| `n > 0` | tích `Use filtered derivative`, `Filter coefficient (N)` = `n`, `Filter method = Backward Euler` |
+| `n <= 0` | bỏ tích `Use filtered derivative` |
+| cờ `TRAPEZOID_I` bật / tắt | `Integrator method` = `Trapezoidal` / `Backward Euler` |
+| `out_min`, `out_max` | `Limit output` + `Lower/Upper saturation limit` |
+| `i_min`, `i_max` | `Limit integrator` + `Lower/Upper integrator saturation limit` |
+| cờ `CLAMP_I` | `Anti-windup method = clamping` |
+| cờ `BACKCALC_I`, `kb` | `Anti-windup method = back-calculation`, `Kb` = `kb` |
+| `dt_max`, `dt_nominal` | *(không có ô tương ứng — xem bên dưới)* |
+
+Chạy `verify_shark_vs_pid2(...)` trong `extras/Test_Shark_PID` sẽ tự động đổ các tham số này vào mô hình Simulink để đối chiếu.
 
 ---
 
 ## Bốn nguyên tắc thiết kế
 
-**1. `dt` là tham số tường minh.**
-`Ki` có đơn vị 1/giây, `Kd` có đơn vị giây, hằng số lọc có đơn vị giây. Đổi vòng lặp từ 1 kHz xuống 50 Hz thì đáp ứng gần như không đổi — không phải dò lại hệ số.
+**1. Không có tính năng nào khối PID không có.**
+Một tính năng không mô phỏng được là một tính năng không kiểm chứng được trước khi nạp firmware. Cần vùng chết, giới hạn dốc hay feedforward? Trong Simulink chúng là khối `Dead Zone`, `Rate Limiter`, `Sum` nối *sau* khối PID — nên ở đây chúng cũng nằm *ngoài* bộ điều khiển, ở tầng gọi. [Ví dụ 02](examples/02_Motor_Bidirectional) làm mẫu giới hạn dốc trong 8 dòng.
 
-**2. Không phụ thuộc Arduino hay HAL.**
-Lõi chỉ cần `<stdint.h>` và `<math.h>`. Biên được cho STM32, ESP-IDF, AVR, hoặc chạy thẳng trên PC để mô phỏng.
+**2. `dt` là tham số tường minh.**
+`Ki` có đơn vị 1/giây, `Kd` có đơn vị giây, `N` có đơn vị rad/giây. Đổi vòng lặp từ 1 kHz xuống 50 Hz thì đáp ứng gần như không đổi — không phải dò lại hệ số. **Đây là thứ duy nhất shark_pid có mà khối PID không có**, vì `Sample time` của khối là hằng số còn ngắt timer thật thì jitter.
 
-**3. Tham số tự tắt.**
-Đặt `d_tau = 0` là tắt lọc D. `out_slew = 0` là tắt giới hạn dốc. `deadband = 0` là tắt vùng chết. Không có cảnh "đặt tham số rồi mà quên bật cờ nên chẳng thấy gì xảy ra". Bitmask chỉ còn giữ những **lựa chọn hành vi** thật sự.
+**3. Không phụ thuộc Arduino hay HAL.**
+Lõi chỉ cần `<stdint.h>`. Không gọi hàm nào của `<math.h>` nên không phải link `-lm`. Biên được cho STM32, ESP-IDF, AVR, hoặc chạy thẳng trên PC để mô phỏng.
 
 **4. Không bao giờ trả về NaN, không bao giờ chia cho 0.**
 Một mẫu ADC hỏng lọt vào bộ tích phân sẽ đầu độc nó vĩnh viễn. shark_pid chặn ở cửa và giữ nguyên lệnh cũ.
@@ -80,8 +93,8 @@ lib_deps = https://github.com/nguyenbinh-shark/shark_pid.git
 SharkPID pid(8.0f, 0.6f, 12.0f, 0.0f, 255.0f);   // Kp, Ki, Kd, min, max
 
 void setup() {
-  pid.cfg().d_tau    = 0.30f;   // lọc khâu D, hằng số thời gian 300 ms
-  pid.cfg().deadband = 0.3f;    // ±0.3 đơn vị thì thôi nhấp nhô
+  pid.cfg().n = 3.33f;          // Filter coefficient N (~ lọc D 300 ms)
+  pid.cfg().c = 0.0f;           // Setpoint weight (c): D chỉ nhìn cảm biến
 }
 
 void loop() {
@@ -101,6 +114,7 @@ void init(void) {
     shark_pid_cfg_t cfg;
     shark_pid_cfg_default(&cfg);
     cfg.kp = 4.0f;  cfg.ki = 1.5f;  cfg.kd = 0.1f;
+    cfg.n  = 250.0f;                        /* Filter coefficient N */
     cfg.out_min = -100.0f;  cfg.out_max = 100.0f;
     cfg.i_min   =  -60.0f;  cfg.i_max   =  60.0f;
     shark_pid_init(&pid, &cfg);
@@ -112,12 +126,11 @@ float step(float target, float measured) {
 }
 ```
 
-### Feedforward tính từ ngoài
+### Đối chiếu với mô hình Simulink
 
-```c
-/* Bù trọng lực cánh tay: mô-men giữ phụ thuộc góc, không suy ra được từ setpoint */
-float gravity = HOLD_TORQUE * cosf(angle_rad);
-float u = shark_pid_update_ff(&pid, target, angle_deg, dt, gravity);
+```matlab
+addpath('extras/Test_Shark_PID');
+verify_shark_vs_pid2('kp', 4, 'ki', 1.5, 'kd', 0.1, 'n', 250, 'Ts', 0.001);
 ```
 
 ---
@@ -126,17 +139,21 @@ float u = shark_pid_update_ff(&pid, target, angle_deg, dt, gravity);
 
 ### Hệ số cơ bản
 
-| Trường | Đơn vị | Ý nghĩa |
+| Trường | Ô của khối | Đơn vị |
 |---|---|---|
-| `kp` | — | Hệ số tỉ lệ |
-| `ki` | 1/giây | Hệ số tích phân. `dt` được nhân bên trong |
-| `kd` | giây | Hệ số vi phân. `dt` được chia bên trong |
+| `kp` | `P` | — |
+| `ki` | `I` | 1/giây. `dt` được nhân bên trong |
+| `kd` | `D` | giây. `dt` được chia bên trong |
 
-### Setpoint weighting — PID hai bậc tự do
+### Setpoint weighting — phần "2 Bậc Tự Do" (2DOF)
 
-Hai hệ số này thay thế cho cả cặp cờ *Derivative-on-Measurement* và *Proportional-on-Measurement* của các thư viện khác:
+**Tại sao lại là "2 Bậc Tự Do" (2DOF)?** 
+Một bộ PID truyền thống (1-DOF) chỉ nhận duy nhất tín hiệu Sai số ($e = r - y$), dẫn đến nhược điểm chí mạng: khi người dùng thay đổi giá trị đặt (Setpoint) một cách đột ngột, sai số nhảy vọt tức thời làm khâu P và D phản ứng thái quá, gây ra hiện tượng **vọt lố (overshoot)** và **đá vi phân (derivative kick)** làm rần hệ thống.
 
-$$u = K_p\,(b\cdot r - y) \;+\; K_i\!\!\int\!(r-y)\,dt \;+\; K_d\,\frac{d(c\cdot r - y)}{dt}$$
+**PID 2DOF** giải quyết triệt để vấn đề này bằng cách nhận tách biệt Setpoint ($r$) và Measurement ($y$), cho phép nhân thêm **trọng số điểm đặt (setpoint weights - $b$ và $c$)** để kìm hãm sự hưng phấn của P và D, nhưng **không hề làm chậm đi khả năng bù nhiễu**. Đó cũng là lý do thư viện yêu cầu truyền tham số tách biệt: `shark_pid_update(&pid, setpoint, measurement, dt);`.
+
+Phương trình thời gian liên tục lý tưởng:
+$$u = K_p\,(b\cdot r - y) \;+\; K_i\!\!\int\!(r-y)\,dt \;+\; \text{Dbranch}(c\cdot r - y)$$
 
 | Trường | Đặt | Kết quả |
 |---|---|---|
@@ -147,47 +164,52 @@ $$u = K_p\,(b\cdot r - y) \;+\; K_i\!\!\int\!(r-y)\,dt \;+\; K_d\,\frac{d(c\cdot
 
 > **Bẫy của `b < 1` mà hầu như không tài liệu nào nhắc.** Ở trạng thái xác lập ($y = r$), khâu P xuất ra $-K_p\,r\,(1-b)$, nên **khâu I buộc phải bù đúng $K_p\,r\,(1-b)$** — cộng thêm tải tĩnh. Với `kp=4`, `r=45`, `b=0.7` thì riêng phần này đã là **54 đơn vị**. Nếu `i_max` nhỏ hơn con số đó, hệ sẽ có sai số xác lập vĩnh viễn mà nhìn hệ số PID không ra bệnh. Hạ `b` thì phải nới `i_max` theo.
 
-### Feedforward
-
-| Trường | Ý nghĩa |
-|---|---|
-| `kf` | Bù tĩnh: `kf * setpoint` |
-| `kf_dot` | Bù vận tốc: `kf_dot * d(setpoint)/dt`. Chỉ có tác dụng khi setpoint đang chạy |
-| *(đối số)* | `shark_pid_update_ff()` nhận thêm lượng bù tính từ ngoài |
-
-Feedforward gánh tải tĩnh để khâu I được rảnh tay. Trong [ví dụ C thuần](extras/plain_c_1khz/main.c), FF giữ đúng 12.73 = 18·cos45° nên I về 0; tắt FF thì chính khâu I phải è cổ giữ con số đó.
-
-### Bộ lọc — khai báo bằng hằng số thời gian
+### Bộ lọc khâu D — khai bằng `N`, đúng như khối
 
 | Trường | Đơn vị | Ghi chú |
 |---|---|---|
-| `d_tau` | giây | Lọc khâu D. Gần như luôn cần. Mặc định 10 ms |
-| `out_tau` | giây | Lọc ngõ ra. **Mặc định tắt** |
+| `n` | rad/giây | Ô `Filter coefficient (N)`. Mặc định 100. `n <= 0` = bỏ lọc |
 
-Hệ số lọc suy ra từ `dt` mỗi chu kỳ: $\alpha = dt/(\tau + dt)$. Đây là lý do đổi tần số vòng lặp không làm trôi đặc tính lọc — khác hẳn kiểu ghi cứng `alpha = 0.25`.
+Hằng số thời gian tương đương là `1/N` giây: `n = 100` ↔ 10 ms. Hệ số rời rạc suy lại từ `dt` mỗi chu kỳ nên đổi tần số vòng lặp không làm trôi tần số cắt — khác hẳn kiểu ghi cứng `alpha = 0.25`.
 
-> **`out_tau` mặc định tắt là có chủ ý.** Lọc ngõ ra nằm *bên trong* vòng kín nên nó ăn vào biên độ pha, tức là làm hệ kém ổn định hơn. Nó bảo vệ mạch công suất, nhưng không miễn phí. Lọc khâu D thì khác — chỉ lọc một nhánh nên an toàn hơn nhiều.
+> Ở 1.x trường này là `d_tau` (hằng số thời gian) và phải quy đổi `N = 1/d_tau` khi điền vào hộp thoại. Từ 2.0 khai thẳng bằng `N` cho khỏi có chỗ mà sai.
 
 ### Chống windup
 
 | Cờ | Cơ chế |
 |---|---|
-| `SHARK_PID_F_CLAMP_I` | Bão hoà thì hoàn tác bước tích phân vừa rồi. Đơn giản, hiệu quả — **nên dùng mặc định** |
-| `SHARK_PID_F_BACKCALC_I` | Kéo bộ tích phân về tỉ lệ với lượng bị cắt, theo hệ số `kt`. Mượt hơn vì không bật/tắt đột ngột |
+| `SHARK_PID_F_CLAMP_I` | `Anti-windup method = clamping`. Ngắt tích phân khi lượng vượt biên và `preInt` cùng dấu. **Nên dùng mặc định** |
+| `SHARK_PID_F_BACKCALC_I` | `Anti-windup method = back-calculation`. Kéo bộ tích phân về theo lượng bị cắt, hệ số `kb`. Mượt hơn vì không bật/tắt đột ngột |
 
-`kt` càng lớn thì chống windup càng mạnh (đo được là đơn điệu). Khởi điểm `kt ≈ ki/kp` rồi tăng dần đến khi vọt lố hết cải thiện.
+Khối chỉ chọn được **một** phương pháp; bật cả hai cờ thì lõi C cũng ưu tiên clamping, đúng như vậy.
 
-Điều kiện kẹp dựa trên **dấu của lượng bị cắt ở ngõ ra**, không dựa vào dấu của bộ tích luỹ. Khác biệt này quan trọng: bộ tích luỹ bằng 0 lúc khởi động, nên cách kia mất tác dụng đúng vào lúc cần nhất.
+`kb` càng lớn thì chống windup càng mạnh (đo được là đơn điệu). Khởi điểm `kb ≈ ki/kp` rồi tăng dần đến khi vọt lố hết cải thiện.
 
-### Vùng chết, giới hạn dốc, phát hiện kẹt
+**Chi tiết đáng đọc.** Mạch chống windup nhìn vào tín hiệu `preSat = P + TRẠNG THÁI khâu I + D` — tức **chưa cộng đóng góp của nhịp hiện tại**. Simulink buộc phải làm vậy để cắt vòng đại số, vì Backward Euler và Trapezoidal đều có truyền thẳng. Cài đặt trực quan hơn là "tính `u_raw` của nhịp này rồi hoàn tác bước tích phân" — đó chính là cách shark_pid 1.x làm, và cũng chính là lý do 1.x lệch với khối đúng những nhịp chạm biên. 2.0 theo đúng khối.
+
+### Bảo vệ nhịp lấy mẫu
 
 | Trường | Ghi chú |
 |---|---|
-| `deadband` | `|e|` nhỏ hơn ngưỡng thì P và I ngừng tác động. **Khâu D vẫn chạy** — vật đang trôi thì vẫn phải hãm |
-| `out_slew` | `|du/dt|` tối đa. Chống sốc dòng và va đập hộp số |
-| `stall_time` / `stall_level` / `stall_eps` | Ra lệnh trên `stall_level` công suất mà cơ cấu chuyển động chậm hơn `stall_eps` liên tục `stall_time` giây → báo kẹt |
+| `dt_max` | `dt` lớn hơn ngưỡng này coi là bất thường |
+| `dt_nominal` | `dt` thay thế khi bất thường. Cũng chính là `Sample time` của khối |
 
-Phát hiện kẹt đếm bằng **thời gian** chứ không bằng số vòng lặp, dùng trị tuyệt đối nên bắt được cả chiều quay âm, và xoá được bằng `shark_pid_clear_status()`. Mặc định chỉ **báo trạng thái**; bật `SHARK_PID_F_STALL_CUTOFF` nếu muốn tự ngắt công suất.
+Đây là hai trường **duy nhất** không có ô tương ứng, vì khối PID trong Simulink có `Ts` hằng số còn vi điều khiển thực tế thì chu kỳ ngắt có thể bị jitter.
+
+---
+
+## Những gì cố tình KHÔNG có
+
+Khối PID không có, nên thư viện cũng không. Cần thì thêm ở tầng gọi — đúng như trong Simulink bạn nối thêm khối:
+
+| Cần gì | Trong Simulink | Trong code |
+|---|---|---|
+| Feedforward | khối `Sum` sau khối PID | `u = shark_pid_update(...) + ff;` — [xem ví dụ](extras/plain_c_1khz/main.c), kèm bẫy phải chừa headroom cho chống windup |
+| Giới hạn dốc `du/dt` | `Rate Limiter` | `applySlew()` trong [ví dụ 02](examples/02_Motor_Bidirectional), 8 dòng |
+| Vùng chết | `Dead Zone` | một câu `if` quanh sai số |
+| Phát hiện kẹt cơ cấu | logic riêng | đếm thời gian ở tầng ứng dụng, dùng `pid.isSaturated()` |
+| Lọc ngõ ra | `Discrete Filter` | lọc thông thấp sau lệnh |
+| Biến tốc độ tích phân | *(không có)* | nếu thật sự cần thì hệ đang thiếu một khâu khác |
 
 ---
 
@@ -197,28 +219,28 @@ Phát hiện kẹt đếm bằng **thời gian** chứ không bằng số vòng 
 shark_pid_preload(&pid, current_manual_output);   /* nạp trước bộ tích phân */
 ```
 
-Ngoài ra, `i_term` lưu sẵn $K_i\!\int\!e$ (đã nhân `Ki`), nên **đổi hệ số lúc đang chạy không làm ngõ ra nhảy bậc**: hệ số mới chỉ ảnh hưởng các bước sau, không hồi tố lên lịch sử đã tích luỹ. Cách cài đặt ngây thơ `i = Ki * tổng(e)` thì nhân lại toàn bộ lịch sử bằng hệ số mới.
+Tương đương điền `Integrator Initial condition` trong tab Initialization của khối, cộng với việc ép khâu D bằng 0 ở nhịp đầu.
+
+Ngoài ra, `i_state` lưu sẵn $K_i\!\int\!e$ (đã nhân `Ki`), nên **đổi hệ số lúc đang chạy không làm ngõ ra nhảy bậc**: hệ số mới chỉ ảnh hưởng các bước sau, không hồi tố lên lịch sử đã tích luỹ. Cách cài đặt ngây thơ `i = Ki * tổng(e)` thì nhân lại toàn bộ lịch sử bằng hệ số mới.
 
 ---
 
 ## Kết quả kiểm chứng
 
-Đo trên mô phỏng đối chiếu (lò sấy bậc nhất, cơ cấu bão hoà 0–100%, mục tiêu 60 °C):
-
 | Hạng mục | Kết quả |
 |---|---|
-| **Độc lập tần số lấy mẫu** | Đổi 1 kHz → 50 Hz *(gấp 20 lần)*, đỉnh lệch **0.03 °C**. Thiết kế không có `dt` lệch **2.51 °C** — gấp **88 lần** |
-| **Chống windup (kẹp)** | Vọt lố **11.21% → 7.18%** |
-| **Chống windup (back-calc)** | `kt` = 0.1 / 0.33 / 1 / 3 / 10 → **10.54 / 9.54 / 8.29 / 7.49 / 7.26%** — đơn điệu |
+| **Khớp khối PID (2DOF)** | 15/15 cấu hình đạt `1e-15` — gồm 4 cấu hình bão hoà và 2 cấu hình kẹp khâu I |
+| **Sàn làm tròn `float`** | `~4e-6` trên toàn bộ 15 cấu hình |
+| **Độc lập tần số lấy mẫu** | Đổi 1 kHz → 50 Hz *(gấp 20 lần)*, đỉnh lệch **0.002 °C**. Thiết kế không có `dt` lệch **2.51 °C** — gấp hơn **1000 lần** |
+| **Chống windup (clamping)** | Vọt lố **11.15% → 7.20%** |
+| **Chống windup (back-calc)** | `kb` = 0.1 / 0.33 / 1 / 3 / 10 → **10.50 / 9.52 / 8.31 / 7.51 / 7.28%** — đơn điệu |
 | **Derivative kick** | `c = 0` → đúng **0.00**. `c = 1` → +15000 |
-| **Xung D giả ở vùng chết** | Nhỏ hơn **10.5 lần** so với cách zero hoá sai số rồi vi phân |
-| **Đổi `Ki` gấp 4 lúc đang chạy** | Nhảy **0.30** *(đúng một bước tích phân)*. Dạng ngây thơ nhảy **45.0** — gấp 150 lần |
+| **Bộ lọc `N`** | Vào dốc đều, D xác lập đúng $-K_d\,\dot y$; `N` nhỏ lọc mạnh hơn hẳn |
+| **Đổi `Ki` gấp 4 lúc đang chạy** | Nhảy **0.19** *(dưới một bước tích phân)*. Dạng ngây thơ nhảy **44.9** — gấp 230 lần |
 | **Miễn nhiễm NaN/Inf** | Giữ nguyên lệnh cũ, bật cờ `BAD_INPUT`, chu kỳ sau chạy lại bình thường |
-| **Giới hạn dốc** | Không bước nào vượt trần `du/dt` |
-| **Phát hiện kẹt** | Bắt được cả chiều dương lẫn chiều âm |
-| **Feedforward** | Thời gian lên $t_{90}$: **8.29 s → 4.55 s** |
+| **Bẫy `b < 1`** | Khâu I gánh thêm đúng $K_p\,r\,(1-b)$ = 72.0, khớp lý thuyết |
 
-**Cách kiểm chứng.** Mọi con số trong bảng trên đều do [`test/test_shark_pid.c`](test/test_shark_pid.c) đo bằng chính mã C, không phải bằng mô hình xấp xỉ. Bộ test chạy trên máy tính, không cần vi điều khiển và không cần thư viện test bên ngoài.
+**Cách kiểm chứng.** Mọi con số trong bảng trên đều do [`test/test_shark_pid.c`](test/test_shark_pid.c) đo bằng chính mã C, không phải bằng mô hình xấp xỉ. Bộ test chạy trên máy tính, không cần vi điều khiển và không cần thư viện test bên ngoài. Nhóm test số 0 nhúng luôn phương trình sai phân chuẩn của khối PID (vốn đã đối chiếu `1e-15` với khối thật trong Simulink R2022b qua S-Function) nên chuyện "khớp khối" được canh gác ở mỗi lần push.
 
 CI chạy mỗi lần push, gồm bốn phần:
 
@@ -233,9 +255,9 @@ CI chạy mỗi lần push, gồm bốn phần:
 
 | Thư mục | Nội dung |
 |---|---|
-| [`examples/01_Heater_Basic`](examples/01_Heater_Basic) | Lò sấy một chiều: vùng chết, lọc D, biến tốc độ tích phân |
-| [`examples/02_Motor_Bidirectional`](examples/02_Motor_Bidirectional) | Động cơ DC hai chiều qua cầu H: giới hạn dốc, phát hiện kẹt, ngõ ra âm |
-| [`extras/plain_c_1khz`](extras/plain_c_1khz) | C thuần, khớp robot 1 kHz với feedforward bù trọng lực. Biên dịch chạy được ngay trên PC |
+| [`examples/01_Heater_Basic`](examples/01_Heater_Basic) | Lò sấy một chiều: lọc D bằng `N`, kẹp tích phân, chống windup clamping |
+| [`examples/02_Motor_Bidirectional`](examples/02_Motor_Bidirectional) | Động cơ DC hai chiều qua cầu H: ngõ ra âm, back-calculation, và giới hạn dốc **để ngoài lõi** |
+| [`extras/Test_Shark_PID`](extras/Test_Shark_PID) | Đối chiếu và mô phỏng với Simulink/MATLAB: S-Function MEX gọi thẳng `src/shark_pid.c`, self-test và bảng ánh xạ |
 
 > `extras/` là thư mục chuẩn của Arduino cho những thứ IDE không dùng tới — ví dụ C thuần nằm ở đó nên `examples/` chỉ còn sketch `.ino` đúng đặc tả.
 
@@ -248,15 +270,35 @@ make -C test asan      # chạy lại dưới AddressSanitizer + UBSan
 
 ---
 
+## Nâng cấp từ 1.x
+
+Xem [CHANGELOG.md](CHANGELOG.md) để có danh sách đầy đủ. Bốn chỗ hay gặp nhất:
+
+```c
+cfg.d_tau = 0.01f;   ->   cfg.n = 100.0f;        /* N = 1/d_tau */
+cfg.kt    = 3.0f;    ->   cfg.kb = 3.0f;         /* đổi tên cho khớp ô Kb */
+shark_pid_update_ff(&pid, r, y, dt, ff);
+                     ->   shark_pid_update(&pid, r, y, dt) + ff;
+pid.i_term                                       /* giờ là NGÕ RA khâu I;
+                                                    trạng thái ở pid.i_state */
+```
+
+`deadband`, `ci_a`/`ci_b`, `out_tau`, `out_slew`, `stall_*` và `shark_pid_clear_status()` đã bị bỏ — bảng [Những gì cố tình KHÔNG có](#những-gì-cố-tình-không-có) chỉ chỗ thay thế cho từng món.
+
+---
+
 ## Đọc thêm
 
 Series **Thực Chiến Lập Trình PID** giải thích từng kỹ thuật trong thư viện này:
 
 1. [Từ công thức đến code](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-1-tu-cong-thuc-den-code/)
 2. [5 căn bệnh của PID đầu tay](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-2-cac-benh-pid-dau-tay/) — bão hoà, windup, nhiễu khâu D, loạn nhịp `dt`
-3. [Tinh chỉnh I và D](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-3-tinh-chinh-i-va-d/) — tích phân hình thang, biến tốc độ, vi phân theo giá trị đo
+3. [Tinh chỉnh I và D](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-3-tinh-chinh-i-va-d/) — tích phân hình thang, vi phân theo giá trị đo
 4. [Đóng gói thư viện](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-4-dong-goi-thu-vien/) — kiến trúc class và cờ tính năng
 5. [Đọc hiểu PID của người đi làm](https://nguyenbinh-shark.github.io/posts/2026/08/pid-code-5-doc-pid-nguoi-di-lam/) — mổ xẻ SimpleFOC
+6. [Cấu hình khối PID Simulink "chuẩn vị" code C](https://nguyenbinh-shark.github.io/posts/2026/08/simscape-multibody-pid-simulink-sim2real/) — bài mà thư viện 2.0 này là kết luận
+
+Còn [`docs/so-sanh.md`](docs/so-sanh.md) ghi lại thư viện này học được gì từ WangHongxi2001/PID_Library và SimpleFOC — và vì sao 2.0 bỏ bớt phần lớn những gì đã học.
 
 ---
 
@@ -271,42 +313,70 @@ MIT. Xem [LICENSE](LICENSE).
 
 # shark_pid (English)
 
-**Sample-rate independent embedded PID controller.** Portable C99 core with no Arduino or HAL dependency, plus a thin C++ wrapper for Arduino/ESP32/PlatformIO.
+**The Simulink `PID Controller (2DOF)` block, reimplemented in portable C99 for microcontrollers.** Every parameter maps one-to-one onto a Block Parameters field, so the model you tune in simulation *is* the controller that runs on the hardware.
 
 ```
-1700 bytes Flash  ·  0 bytes static RAM  ·  C99  ·  no dynamic allocation  ·  MIT
+~1100 bytes Flash  ·  0 bytes static RAM  ·  C99  ·  no dynamic allocation  ·  no -lm  ·  MIT
 ```
+
+## The problem it solves
+
+You tune a PID in Simulink, the plot looks good, you flash it to an STM32 — and the system behaves differently. Usually not because the plant model was wrong, but because the *controller* in the simulation and the *controller* in the firmware are two different algorithms: different integrator discretisation, different derivative filter, and above all a different anti-windup circuit once the actuator saturates.
+
+shark_pid closes that gap from the other direction: instead of adding features to a C library and then trying to simulate them, it transcribes the block diagram inside the PID block, and has nothing else.
+
+| | |
+|---|---|
+| Parameters | 100% one-to-one with a Block Parameters field |
+| Deviation from the block, unsaturated | `1e-15` *(double)* |
+| Deviation from the block, **saturated** | `1e-15` *(double)* — where 1.x could not follow |
+| Deviation you actually see on an MCU | `~4e-6` — the `float` rounding floor, irreducible |
+
+[`extras/Test_Shark_PID/`](extras/Test_Shark_PID/) ships the cross-check: `verify_shark_vs_pid2` (Simulink S-Function running real C code against the native 2DOF PID block).
 
 ## Design principles
 
-1. **`dt` is an explicit argument.** `Ki` is in 1/second, `Kd` in seconds, filter constants in seconds. Move from 1 kHz to 50 Hz and the response barely changes — no re-tuning.
-2. **No Arduino, no HAL.** The core needs only `<stdint.h>` and `<math.h>`. Builds for STM32, ESP-IDF, AVR, or runs on a PC for simulation.
-3. **Parameters self-disable.** `d_tau = 0` disables the derivative filter, `out_slew = 0` disables slew limiting, `deadband = 0` disables the deadband. The flag bitmask carries only genuine *behavioural choices*.
+1. **Nothing the block does not have.** A feature you cannot simulate is a feature you cannot verify before flashing. Need a deadband, a rate limiter, feedforward? In Simulink those are `Dead Zone`, `Rate Limiter` and `Sum` blocks wired *after* the PID block — so here they live *outside* the controller too, in the calling layer.
+2. **`dt` is an explicit argument.** `Ki` is in 1/second, `Kd` in seconds, `N` in rad/second. Move from 1 kHz to 50 Hz and the response barely changes. This is the one thing shark_pid has that the block does not, because the block's `Sample time` is a constant while a real timer interrupt jitters.
+3. **No Arduino, no HAL.** The core needs only `<stdint.h>` and calls no `<math.h>` function, so it does not even need `-lm`. Builds for STM32, ESP-IDF, AVR, or runs on a PC.
 4. **Never returns NaN, never divides by zero.** One bad ADC sample poisons a naive integrator forever; shark_pid rejects it at the door and holds the previous command.
-
-## What it has that the libraries it learned from don't
-
-- Real `dt` in every term, and filter coefficients derived from `dt` rather than hard-coded
-- Setpoint weighting (`b`, `c`) — a single mechanism that subsumes both *derivative-on-measurement* and *proportional-on-measurement*
-- Feedforward: static, velocity, and an externally computed term via `shark_pid_update_ff()`
-- Back-calculation anti-windup alongside conditional-integration clamping, keyed on **output** saturation rather than on the accumulator's sign
-- NaN/Inf rejection, time-based recoverable stall detection, bumpless manual→auto transfer
 
 ## Quick start
 
 ```cpp
 #include <SharkPID.hpp>
 SharkPID pid(8.0f, 0.6f, 12.0f, 0.0f, 255.0f);   // Kp, Ki, Kd, min, max
+pid.cfg().n = 3.33f;                              // Filter coefficient N
 float u = pid.update(setpoint, measurement);      // dt measured via micros()
 ```
 
 ```c
 #include "shark_pid.h"
 shark_pid_cfg_t cfg;  shark_pid_cfg_default(&cfg);
-cfg.kp = 4.0f;  cfg.ki = 1.5f;  cfg.kd = 0.1f;
+cfg.kp = 4.0f;  cfg.ki = 1.5f;  cfg.kd = 0.1f;  cfg.n = 250.0f;
 shark_pid_init(&pid, &cfg);
 float u = shark_pid_update(&pid, setpoint, measurement, 0.001f);
 ```
+
+## Why 2-DOF?
+
+A traditional 1-DOF PID controller receives only the `error` ($e = r - y$), causing P and D terms to react violently to abrupt setpoint changes (overshoot and derivative kick). 
+
+A **2-DOF** (Two Degrees of Freedom) architecture fixes this by receiving `setpoint` and `measurement` separately. This allows the use of **setpoint weights** (`b` and `c`) to tame the P and D terms during setpoint changes, without compromising the controller's ability to reject load disturbances. That is why the core library uses `shark_pid_update(&pid, setpoint, measurement, dt);`.
+
+
+## Parameter mapping
+
+| `shark_pid_cfg_t` | Block Parameters field |
+|---|---|
+| `kp`, `ki`, `kd` | `P`, `I`, `D` |
+| `b`, `c` | `Setpoint weight (b)`, `Setpoint weight (c)` |
+| `n` | `Filter coefficient (N)`; `n <= 0` unchecks `Use filtered derivative` |
+| `TRAPEZOID_I` flag | `Integrator method` = `Trapezoidal` / `Backward Euler` |
+| `out_min`, `out_max` | `Limit output` + saturation limits |
+| `i_min`, `i_max` | `Limit integrator` + integrator saturation limits |
+| `CLAMP_I` / `BACKCALC_I` + `kb` | `Anti-windup method` = `clamping` / `back-calculation` + `Kb` |
+| `dt_max`, `dt_nominal` | *(no equivalent — the block's `Ts` is constant)* |
 
 ## Gotcha worth knowing: `b < 1`
 
@@ -314,9 +384,13 @@ At steady state the proportional term outputs $-K_p\,r\,(1-b)$, so **the integra
 
 ## Verification
 
-`test/test_shark_pid.c` is a dependency-free host test suite — no microcontroller, no test framework. Run it with `make -C test test`.
+`test/test_shark_pid.c` is a dependency-free host test suite — no microcontroller, no test framework. Run it with `make -C test test`. Its first group embeds the block's standard difference equations (validated against the real Simulink R2022b block) and checks the C core against them across 15 configurations, so "matches the block" is guarded on every push.
 
 CI on every push: the suite under both `gcc` and `clang` with `-Werror`, then again under AddressSanitizer + UBSan; cross-compilation for Cortex-M0 and Cortex-M4 with the full strict warning set and `-Werror`; Arduino Lint in `library-manager: submit` / `compliance: strict` mode; and sketch compilation for Arduino Uno.
+
+## Upgrading from 1.x
+
+`d_tau` became `n` (`n = 1/d_tau`), `kt` became `kb`, `i_term` is now the integrator's *output* while the state lives in `i_state`, and feedforward, deadband, changing-integral-rate, output filter, slew limiting and stall detection were removed — add them in the calling layer, exactly as you would wire an extra block after the PID block in Simulink. See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

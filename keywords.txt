@@ -18,20 +18,18 @@ shark_pid_status_t	KEYWORD1
 #######################################
 
 update	KEYWORD2
-updateFF	KEYWORD2
 reset	KEYWORD2
 preload	KEYWORD2
 setGains	KEYWORD2
 setOutputLimits	KEYWORD2
 setIntegralLimits	KEYWORD2
-clearStatus	KEYWORD2
+setFilterN	KEYWORD2
 isSaturated	KEYWORD2
-isStalled	KEYWORD2
 hadBadInput	KEYWORD2
+hadBadDt	KEYWORD2
 pTerm	KEYWORD2
 iTerm	KEYWORD2
 dTerm	KEYWORD2
-ffTerm	KEYWORD2
 dtUsed	KEYWORD2
 cfg	KEYWORD2
 core	KEYWORD2
@@ -40,11 +38,9 @@ shark_pid_init	KEYWORD2
 shark_pid_cfg_default	KEYWORD2
 shark_pid_reset	KEYWORD2
 shark_pid_update	KEYWORD2
-shark_pid_update_ff	KEYWORD2
 shark_pid_set_gains	KEYWORD2
 shark_pid_set_output_limits	KEYWORD2
 shark_pid_preload	KEYWORD2
-shark_pid_clear_status	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
@@ -54,12 +50,9 @@ SHARK_PID_F_NONE	LITERAL1
 SHARK_PID_F_TRAPEZOID_I	LITERAL1
 SHARK_PID_F_CLAMP_I	LITERAL1
 SHARK_PID_F_BACKCALC_I	LITERAL1
-SHARK_PID_F_DEADBAND_HOLD	LITERAL1
-SHARK_PID_F_STALL_CUTOFF	LITERAL1
 
 SHARK_PID_OK	LITERAL1
 SHARK_PID_SATURATED	LITERAL1
-SHARK_PID_STALLED	LITERAL1
 SHARK_PID_BAD_INPUT	LITERAL1
 SHARK_PID_BAD_DT	LITERAL1
 
