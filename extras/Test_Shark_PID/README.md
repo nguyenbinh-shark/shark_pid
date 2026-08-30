@@ -26,8 +26,7 @@ Script sẽ:
 
 ## Video Hướng Dẫn Thao Tác
 
-[![Hướng dẫn kiểm chứng Shark_PID trên Simulink](https://youtu.be/Ys2CLVu3MWg)](https://youtu.be/Ys2CLVu3MWg)
-*(Thay `YOUR_VIDEO_ID` bằng ID video YouTube của bạn)*
+[![Hướng dẫn kiểm chứng Shark_PID trên Simulink](https://img.youtube.com/vi/Ys2CLVu3MWg/0.jpg)](https://youtu.be/Ys2CLVu3MWg)
 
 ---
 
